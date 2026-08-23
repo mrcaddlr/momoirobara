@@ -1,0 +1,11 @@
+(()=>{'use strict';
+const KEY='momoirobara.settings.v2';
+const DB='MomoirobaraMediaDB',STORE='songs';
+const $=s=>document.querySelector(s);
+function saveSettings(){const data={};document.querySelectorAll('input,select,textarea').forEach((e,i)=>{if(!e.id)return;if(e.type==='file'||e.type==='button'||e.type==='submit')return;data[e.id]={value:e.value,checked:e.type==='checkbox'?e.checked:undefined};});try{localStorage.setItem(KEY,JSON.stringify(data))}catch{}}
+function restoreSettings(){try{const d=JSON.parse(localStorage.getItem(KEY)||'{}');for(const [id,v] of Object.entries(d)){const e=document.getElementById(id);if(!e)continue;if(e.type==='checkbox'&&typeof v.checked==='boolean')e.checked=v.checked;else if(v.value!=null)e.value=v.value;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))}}catch{}}
+function openDB(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
+async function restoreSongs(){if(!Array.isArray(window.momoSongs))return;let db;try{db=await openDB();const rows=await new Promise((ok,no)=>{const r=db.transaction(STORE).objectStore(STORE).getAll();r.onsuccess=()=>ok(r.result||[]);r.onerror=()=>no(r.error)});const have=new Set(window.momoSongs.map(s=>s.id));for(const x of rows){if(have.has(x.id)||!x.audioData)continue;const blob=new Blob([x.audioData],{type:x.mimeType||'audio/*'}),file=new File([blob],x.name||'track',{type:blob.type,lastModified:x.lastModified||Date.now()});window.momoSongs.push({...x,file,url:URL.createObjectURL(file),artwork:null});}window.momoRenderAll?.()}catch(e){console.warn('library restore failed',e)}finally{db?.close()}}
+function start(){restoreSettings();document.addEventListener('input',saveSettings,true);document.addEventListener('change',saveSettings,true);window.addEventListener('pagehide',saveSettings);let tries=0;const t=setInterval(()=>{restoreSongs();if(++tries>30)clearInterval(t)},200)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
