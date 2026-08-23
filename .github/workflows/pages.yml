@@ -28,21 +28,32 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Inject responsive layout into Pages build
+      - name: Inject mobile, foldable and artist assets
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          css = '<link rel="stylesheet" href="./responsive.css?v=landscape-2">'
-          js = '<script src="./responsive.js?v=landscape-2" defer></script>'
-          if css not in s:
-              s = s.replace('</head>', css + '\n</head>', 1)
-          if js not in s:
-              s = s.replace('</body>', js + '\n</body>', 1)
+          for tag in [
+              '<link rel="stylesheet" href="./responsive.css?v=backup-mobile-2">',
+              '<link rel="stylesheet" href="./mobile-support.css?v=mobile-1">',
+              '<link rel="stylesheet" href="./artists.css?v=artists-1">',
+          ]:
+              if tag not in s:
+                  s = s.replace('</head>', tag + '\n</head>', 1)
+          scripts = [
+              '<script src="./responsive.js?v=backup-mobile-2" defer></script>',
+              '<script src="./mobile-support.js?v=mobile-1" defer></script>',
+          ]
+          if './mobile-support.js?v=mobile-1' not in s:
+              s = s.replace('</body>', '\n'.join(scripts) + '\n</body>', 1)
           p.write_text(s, encoding='utf-8')
           PY
-          grep -n "responsive.css\|responsive.js" index.html
+          test -f responsive.css
+          test -f responsive.js
+          test -f mobile-support.css
+          test -f mobile-support.js
+          test -f artists.css
 
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
