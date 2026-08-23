@@ -23,20 +23,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - name: Inject mobile assets only
+      - name: Inject mobile and persistence assets
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
+          p=Path('index.html'); s=p.read_text(encoding='utf-8')
           css='<link rel="stylesheet" href="./mobile-support.css?v=mobile-2">'
           js='<script src="./mobile-support.js?v=mobile-2" defer></script>'
+          persist='<script src="./settings-persistence.js?v=persist-1" defer></script>'
           if css not in s: s=s.replace('</head>',css+'\n</head>',1)
           if js not in s: s=s.replace('</body>',js+'\n</body>',1)
+          if persist not in s: s=s.replace('</body>',persist+'\n</body>',1)
           p.write_text(s,encoding='utf-8')
           PY
           test -f mobile-support.css
           test -f mobile-support.js
+          test -f settings-persistence.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
