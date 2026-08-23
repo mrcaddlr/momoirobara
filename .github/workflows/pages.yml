@@ -2,8 +2,7 @@ name: Deploy Momoirobara to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,44 +21,25 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Inject mobile, foldable and artist assets
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Inject mobile assets only
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-          for tag in [
-              '<link rel="stylesheet" href="./responsive.css?v=backup-mobile-2">',
-              '<link rel="stylesheet" href="./mobile-support.css?v=mobile-1">',
-              '<link rel="stylesheet" href="./artists.css?v=artists-1">',
-          ]:
-              if tag not in s:
-                  s = s.replace('</head>', tag + '\n</head>', 1)
-          scripts = [
-              '<script src="./responsive.js?v=backup-mobile-2" defer></script>',
-              '<script src="./mobile-support.js?v=mobile-1" defer></script>',
-          ]
-          if './mobile-support.js?v=mobile-1' not in s:
-              s = s.replace('</body>', '\n'.join(scripts) + '\n</body>', 1)
-          p.write_text(s, encoding='utf-8')
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          css='<link rel="stylesheet" href="./mobile-support.css?v=mobile-2">'
+          js='<script src="./mobile-support.js?v=mobile-2" defer></script>'
+          if css not in s: s=s.replace('</head>',css+'\n</head>',1)
+          if js not in s: s=s.replace('</body>',js+'\n</body>',1)
+          p.write_text(s,encoding='utf-8')
           PY
-          test -f responsive.css
-          test -f responsive.js
           test -f mobile-support.css
           test -f mobile-support.js
-          test -f artists.css
-
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: .
-
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
